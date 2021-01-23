@@ -4,6 +4,13 @@ using UnityEngine;
 
 public class GameRun : MonoBehaviour
 {
+    // Animal enumeration identifier
+    enum ANIMAL_TYPE
+    {
+        FOX,
+        FROG, 
+        OPOSSUM
+    };
 
 	// Management of sprites
 	private Object[] backgrounds;
@@ -12,10 +19,13 @@ public class GameRun : MonoBehaviour
 
 	// Game management
 	private GameObject enemyCards;
-	private int [] enemyChars;	
+    private GameObject playerCards;
+	private int [] enemyChars;
+    private int [] playerChars;
 	private Agent agent;
 
 	private int NUM_ENEMY_CARDS = 3;
+    private int NUM_PLAYER_CARDS = 3;
 	private int NUM_CLASSES     = 3;
 	private int DECK_SIZE       = 4;
 
@@ -55,7 +65,10 @@ public class GameRun : MonoBehaviour
         enemyCards = GameObject.Find("EnemyCards");
         enemyChars = new int[NUM_ENEMY_CARDS];
 
-        agent      = GameObject.Find("AgentManager").GetComponent<Agent>();
+        playerCards = GameObject.Find("PlayerCards");
+        playerChars = new int[NUM_PLAYER_CARDS];
+
+        agent = GameObject.Find("AgentManager").GetComponent<Agent>();
 
         agent.Initialize();
 
@@ -82,26 +95,81 @@ public class GameRun : MonoBehaviour
     // Return the label (0-2) of the card
     private int GenerateCard(Transform parent)
     {
-
     	int idx = Random.Range(0, backgrounds.Length);
     	Instantiate(backgrounds[idx], parent.position, Quaternion.identity, parent);
 
-
-    	idx               = Random.Range(0, props.Length);
+    	idx = Random.Range(0, props.Length);
     	Vector3 position = new Vector3(Random.Range(-3.0f, 3.0f), Random.Range(-3.0f, 3.0f), -1.0f);
    	  	Instantiate(props[idx], parent.position+position, Quaternion.identity, parent);
 
-    	idx         = Random.Range(0, chars.Length);
-    	position    = new Vector3(Random.Range(-3.0f, 3.0f), Random.Range(-3.0f, 3.0f), -2.0f);    	
+    	idx = Random.Range(0, chars.Length);
+    	position = new Vector3(Random.Range(-3.0f, 3.0f), Random.Range(-3.0f, 3.0f), -2.0f);    	
    	  	Instantiate(chars[idx], parent.position+position, Quaternion.identity, parent);
 
    	  	// Determine label of the character, return it
-   	  	int label = 0;
+   	  	int label = 0; 
    	  	if(chars[idx].name.StartsWith("frog")) label = 1;
-   	  	else if(chars[idx].name.StartsWith("oposum")) label = 2;
+   	  	else if(chars[idx].name.StartsWith("opossum")) label = 2;
 
     	return label;
-    } 
+    }
+
+    private void GenerateCardProps(Transform parent)
+    {
+        int idx = Random.Range(0, props.Length);
+        Vector3 position = new Vector3(Random.Range(-3.0f, 3.0f), Random.Range(-3.0f, 3.0f), -1.0f);
+        Instantiate(props[idx], parent.position + position, Quaternion.identity, parent);
+    }
+
+    private void GenerateCardBackgrounds(Transform parent)
+    {
+        int idx = Random.Range(0, backgrounds.Length);
+        Instantiate(backgrounds[idx], parent.position, Quaternion.identity, parent);
+    }
+
+    private void GenerateCardAnimals(Transform parent, int type)
+    {
+        if (type == 0)
+        {
+            InstantiateAnimal(ANIMAL_TYPE.FOX, parent);
+        }
+        else if (type == 1)
+        {
+            InstantiateAnimal(ANIMAL_TYPE.FROG, parent);
+        }
+        else if (type == 2)
+        {
+            InstantiateAnimal(ANIMAL_TYPE.OPOSSUM, parent);
+        }
+    }
+
+    private void InstantiateAnimal(ANIMAL_TYPE type, Transform parent)
+    {
+        int idx;
+        Vector3 position;
+
+        switch (type)
+        {
+            case ANIMAL_TYPE.FOX:
+                idx = Random.Range(0, 5); // fox (0 - 5)
+                position = new Vector3(Random.Range(-3.0f, 3.0f), Random.Range(-3.0f, 3.0f), -2.0f);
+                Instantiate(chars[idx], parent.position + position, Quaternion.identity, parent);
+                break;
+
+            case ANIMAL_TYPE.FROG:
+                idx = Random.Range(6, 11); // frog (6 - 11)
+                position = new Vector3(Random.Range(-3.0f, 3.0f), Random.Range(-3.0f, 3.0f), -2.0f);
+                Instantiate(chars[idx], parent.position + position, Quaternion.identity, parent);
+                break;
+
+            case ANIMAL_TYPE.OPOSSUM:
+                idx = Random.Range(12, 17); // opossum (12 - 17)
+                position = new Vector3(Random.Range(-3.0f, 3.0f), Random.Range(-3.0f, 3.0f), -2.0f);
+                Instantiate(chars[idx], parent.position + position, Quaternion.identity, parent);
+                break;
+        }
+
+    }
 
     // Generate another turn
     IEnumerator GenerateTurn()
@@ -126,27 +194,39 @@ public class GameRun : MonoBehaviour
 	        ///////////////////////////////////////
 	        // Generate player deck
 	        ///////////////////////////////////////
-	        int [] deck   = GeneratePlayerDeck();
+	        int [] deck = GeneratePlayerDeck();
 	        textDeck.text = "Deck: ";
 	        foreach(int card in deck)
 	        	textDeck.text += card.ToString() + "/";
 
 
-	        ///////////////////////////////////////
-	        // Tell the player to play
-	        ///////////////////////////////////////
+            ///////////////////////////////////////
+            // Tell the player to play
+            ///////////////////////////////////////
 
-	        // IMPORTANT: wait until the frame is rendered so the player sees
-	        //            the newly generated cards (otherwise it will see the previous ones)
-	        yield return new WaitForEndOfFrame();
+
+            // IMPORTANT: wait until the frame is rendered so the player sees
+            //            the newly generated cards (otherwise it will see the previous ones)
+            yield return new WaitForEndOfFrame();
 
 	        int [] action = agent.Play(deck, enemyChars);
 
-	        textDeck.text += " Action:";
+            int i = 0;
+            foreach (Transform card in playerCards.transform)
+            {
+                foreach (Transform sprite in card)
+                {
+                    Destroy(sprite.gameObject);
+                }
+                GenerateCardProps(card);
+                GenerateCardBackgrounds(card);
+                GenerateCardAnimals(card, action[i]);
+                i++;
+            }
+
+            textDeck.text += " Action:";
 	        foreach(int a in action)
 	        	textDeck.text += a.ToString() + "/";
-
-
 
 
 	        ///////////////////////////////////////
@@ -214,6 +294,7 @@ public class GameRun : MonoBehaviour
     		
     	}
 
+        // Hand Data Record
     	if(score == 0) return RWD_TIE;
     	else if(score > 0) return RWD_HAND_WON;
     	else return RWD_HAND_LOST;
