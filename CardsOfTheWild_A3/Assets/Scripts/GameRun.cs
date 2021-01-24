@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GameRun : MonoBehaviour
 {
@@ -36,7 +37,16 @@ public class GameRun : MonoBehaviour
 	private float RWD_HAND_WON       =  1.0f;
 
 	// Other UI elements
-	private UnityEngine.UI.Text textDeck;
+	private Text textDeck;
+    private Text textTurns;
+    private Text textVictories;
+    private Text textTies;
+    private Text textDefeats;
+
+    // Turn Data
+    int turn = 0;
+    int victories = 0;
+    int defeats = 0;
 
     // Start is called before the first frame update
     void Start()
@@ -56,7 +66,10 @@ public class GameRun : MonoBehaviour
         ///////////////////////////////////////
         // UI management
         ///////////////////////////////////////
-        textDeck = GameObject.Find("TextDeck").GetComponent<UnityEngine.UI.Text>();
+        textDeck = GameObject.Find("TextDeck").GetComponent<Text>();
+        textTurns = GameObject.Find("TextTurn").GetComponent<Text>();
+        textVictories = GameObject.Find("TextVictories").GetComponent<Text>();
+        textDefeats = GameObject.Find("TextDefeats").GetComponent<Text>();
 
 
         ///////////////////////////////////////
@@ -168,7 +181,22 @@ public class GameRun : MonoBehaviour
                 Instantiate(chars[idx], parent.position + position, Quaternion.identity, parent);
                 break;
         }
+    }
 
+    private void ManageTurnResult(float reward)
+    {
+        switch (reward)
+        {
+            case 1.0f:
+                victories++;
+                textVictories.text = "Victories: " + victories.ToString();
+                break;
+
+            case -1.0f:
+                defeats++;
+                textDefeats.text = "Defeats: " + defeats.ToString();
+                break;
+        }
     }
 
     // Generate another turn
@@ -176,12 +204,15 @@ public class GameRun : MonoBehaviour
     {	
     	for(int turn=0; turn<100000; turn++) {
 
-	        ///////////////////////////////////////
-	        // Generate enemy cards
-	        ///////////////////////////////////////
+            // Prints the current turn 
+            textTurns.text = "Turn " + turn.ToString();
 
-	    	// Destroy previous sprites (if any) and generate new cards
-	    	int c = 0;
+            ///////////////////////////////////////
+            // Generate enemy cards
+            ///////////////////////////////////////
+
+            // Destroy previous sprites (if any) and generate new cards
+            int c = 0;
 	    	foreach(Transform card in enemyCards.transform) {
 	    		foreach(Transform sprite in card) {
 	    			Destroy(sprite.gameObject);
@@ -229,23 +260,26 @@ public class GameRun : MonoBehaviour
 	        	textDeck.text += a.ToString() + "/";
 
 
-	        ///////////////////////////////////////
-	        // Compute reward
-	        ///////////////////////////////////////
-	        float reward = ComputeReward(deck, action);
+            ///////////////////////////////////////
+            // Compute reward
+            ///////////////////////////////////////
+            float reward = ComputeReward(deck, action);
 	        
 	        Debug.Log("Turn/reward: " + turn.ToString() + "->" + reward.ToString());
 
 	        agent.GetReward(reward);
 
-
-	        ///////////////////////////////////////
-	        // Manage turns/games
-	        ///////////////////////////////////////
+            // Prints Reward Data
+            ManageTurnResult(reward);
 
 
+            ///////////////////////////////////////
+            // Manage turns/games
+            ///////////////////////////////////////
 
-	    	yield return new WaitForSeconds(0.1f);
+
+
+            yield return new WaitForSeconds(0.1f);
 
     	}
 
@@ -282,7 +316,7 @@ public class GameRun : MonoBehaviour
 
     	// Second see who wins
     	int score = 0;
-    	for(int i=0; i<NUM_ENEMY_CARDS; i++)
+    	for(int i = 0; i < NUM_ENEMY_CARDS; i++)
     	{
     		if(action[i] != enemyChars[i])
     		{
